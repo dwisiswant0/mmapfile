@@ -1,0 +1,5 @@
+Hello, World!
+This is a test file for mmapfile.
+It contains multiple lines of text.
+Line 4: Lorem ipsum dolor sit amet.
+Line 5: The quick brown fox jumps over the lazy dog.
