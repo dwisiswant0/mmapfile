@@ -88,8 +88,8 @@ f, err := mmapfile.OpenFile("file.txt", os.O_RDWR|os.O_CREATE, 0644, 1024*1024)
 | `WriteAt([]byte, int64)` | Write at offset (cursor unchanged) |
 | `WriteString(string)` | Write string |
 | `Seek(int64, int)` | Set cursor position |
-| `ReadFrom([io.Reader](https://pkg.go.dev/io#Reader))` | Read from reader into file |
-| `WriteTo([io.Writer](https://pkg.go.dev/io#Writer))` | Write file contents to writer |
+| `ReadFrom(io.Reader)` | Read from reader into file |
+| `WriteTo(io.Writer)` | Write file contents to writer |
 | `Close()` | Close and unmap the file |
 | `Sync()` | Flush changes to disk |
 | `Stat()` | Get file info |
