@@ -37,4 +37,5 @@ jobs:
   benchmarks:
     name: "Benchmarks"
     needs: ["tests"]
+    if: ${{ github.event_name != 'push' }}
     uses: ./.github/workflows/benchmarks.yaml
