@@ -88,8 +88,8 @@ f, err := mmapfile.OpenFile("file.txt", os.O_RDWR|os.O_CREATE, 0644, 1024*1024)
 | `WriteAt([]byte, int64)` | Write at offset (cursor unchanged) |
 | `WriteString(string)` | Write string |
 | `Seek(int64, int)` | Set cursor position |
-| `ReadFrom([io.Reader](https://pkg.go.dev/io#Reader))` | Read from reader into file |
-| `WriteTo([io.Writer](https://pkg.go.dev/io#Writer))` | Write file contents to writer |
+| `ReadFrom(io.Reader)` | Read from reader into file |
+| `WriteTo(io.Writer)` | Write file contents to writer |
 | `Close()` | Close and unmap the file |
 | `Sync()` | Flush changes to disk |
 | `Stat()` | Get file info |
@@ -119,19 +119,19 @@ data := f.Bytes()
   cpu: AMD EPYC 7763 64-Core Processor                
                   │       os       │                 mmap                  │
                   │     sec/op     │    sec/op     vs base                 │
-  Read-2              1156.50n ± 0%    24.34n ± 4%   -97.90% (p=0.000 n=10)
-  ReadAt-2            644.600n ± 1%    9.432n ± 0%   -98.54% (p=0.000 n=10)
-  ReadAtParallel-2     433.20n ± 1%    28.73n ± 2%   -93.37% (p=0.000 n=10)
-  Write-2             1538.50n ± 0%    24.51n ± 0%   -98.41% (p=0.000 n=10)
-  WriteAt-2           1049.50n ± 1%    14.43n ± 0%   -98.63% (p=0.000 n=10)
-  Seek-2               360.20n ± 1%    12.21n ± 0%   -96.61% (p=0.000 n=10)
-  Bytes-2               6.359n ± 0%    6.359n ± 0%         ~ (p=1.000 n=10)
-  ReadFrom-2          1732.00n ± 0%    64.00n ± 3%   -96.30% (p=0.000 n=10)
-  WriteTo-2          1969.500n ± 0%    7.562n ± 0%   -99.62% (p=0.000 n=10)
-  Stat-2                698.3n ± 0%   1652.0n ± 0%  +136.57% (p=0.000 n=10)
-  Sync-2                866.7n ± 0%    925.6n ± 1%    +6.80% (p=0.000 n=10)
-  Close-2               5.940µ ± 2%   13.284µ ± 2%  +123.64% (p=0.000 n=10)
-  geomean               703.3n         59.01n        -91.61%
+  Read-2              1138.00n ± 0%    24.06n ± 0%   -97.89% (p=0.000 n=10)
+  ReadAt-2            639.800n ± 0%    9.367n ± 1%   -98.54% (p=0.000 n=10)
+  ReadAtParallel-2     354.70n ± 1%    35.02n ± 4%   -90.13% (p=0.000 n=10)
+  Write-2             1508.50n ± 0%    24.33n ± 0%   -98.39% (p=0.000 n=10)
+  WriteAt-2          1024.500n ± 1%    9.664n ± 0%   -99.06% (p=0.000 n=10)
+  Seek-2               357.10n ± 0%    11.84n ± 0%   -96.68% (p=0.000 n=10)
+  ReadFrom-2          1683.00n ± 1%    61.16n ± 9%   -96.37% (p=0.000 n=10)
+  WriteTo-2          1940.500n ± 0%    7.578n ± 0%   -99.61% (p=0.000 n=10)
+  Stat-2                679.8n ± 0%   1606.0n ± 1%  +136.26% (p=0.000 n=10)
+  Sync-2                849.8n ± 0%    910.4n ± 1%    +7.13% (p=0.000 n=10)
+  Close-2               5.915µ ± 1%   12.665µ ± 0%  +114.13% (p=0.000 n=10)
+  geomean               1.043µ         69.70n        -93.32%
+
                   │      os      │                  mmap                   │
                   │     B/op     │    B/op     vs base                     │
   Read-2             0.000 ± 0%     0.000 ± 0%         ~ (p=1.000 n=10) ¹
@@ -140,16 +140,16 @@ data := f.Bytes()
   Write-2            0.000 ± 0%     0.000 ± 0%         ~ (p=1.000 n=10) ¹
   WriteAt-2          0.000 ± 0%     0.000 ± 0%         ~ (p=1.000 n=10) ¹
   Seek-2             0.000 ± 0%     0.000 ± 0%         ~ (p=1.000 n=10) ¹
-  Bytes-2            0.000 ± 0%     0.000 ± 0%         ~ (p=1.000 n=10) ¹
   ReadFrom-2         56.00 ± 0%     48.00 ± 0%   -14.29% (p=0.000 n=10)
   WriteTo-2          40.00 ± 0%      0.00 ± 0%  -100.00% (p=0.000 n=10)
   Stat-2             208.0 ± 0%     232.0 ± 0%   +11.54% (p=0.000 n=10)
   Sync-2             0.000 ± 0%     0.000 ± 0%         ~ (p=1.000 n=10) ¹
-  Close-2            216.0 ± 0%     536.0 ± 0%  +148.15% (p=0.000 n=10)
+  Close-2            216.0 ± 7%     536.0 ± 0%  +148.15% (p=0.000 n=10)
   geomean                       ²               ?                       ² ³
   ¹ all samples are equal
   ² summaries must be >0 to compute geomean
   ³ ratios must be >0 to compute geomean
+
                   │      os      │                  mmap                   │
                   │  allocs/op   │ allocs/op   vs base                     │
   Read-2             0.000 ± 0%     0.000 ± 0%         ~ (p=1.000 n=10) ¹
@@ -158,7 +158,6 @@ data := f.Bytes()
   Write-2            0.000 ± 0%     0.000 ± 0%         ~ (p=1.000 n=10) ¹
   WriteAt-2          0.000 ± 0%     0.000 ± 0%         ~ (p=1.000 n=10) ¹
   Seek-2             0.000 ± 0%     0.000 ± 0%         ~ (p=1.000 n=10) ¹
-  Bytes-2            0.000 ± 0%     0.000 ± 0%         ~ (p=1.000 n=10) ¹
   ReadFrom-2         2.000 ± 0%     1.000 ± 0%   -50.00% (p=0.000 n=10)
   WriteTo-2          3.000 ± 0%     0.000 ± 0%  -100.00% (p=0.000 n=10)
   Stat-2             1.000 ± 0%     2.000 ± 0%  +100.00% (p=0.000 n=10)
@@ -173,22 +172,22 @@ data := f.Bytes()
 
 ### Summary
 
-| Operation | mmap (ns/op) | os.File (ns/op) | Improvement | Allocations |
-|-----------|--------------|-----------------|-------------|-------------|
-| `Read` | 24 | 1157 | **48x faster** | 0 → 0 |
-| `ReadAt` | 9 | 645 | **68x faster** | 0 → 0 |
-| `ReadAt` (parallel) | 29 | 433 | **15x faster** | 0 → 0 |
-| `Write` | 25 | 1539 | **63x faster** | 0 → 0 |
-| `WriteAt` | 14 | 1050 | **73x faster** | 0 → 0 |
-| `Seek` | 12 | 360 | **29x faster** | 0 → 0 |
-| `ReadFrom` | 64 | 1732 | **27x faster** | 1 → 2 |
-| `WriteTo` | 8 | 1970 | **260x faster** | 0 → 3 |
-| `Stat` | 1652 | 698 | 2.4x slower | 2 → 1 |
-| `Sync` | 0.93 µs | 0.87 µs | 1.1x slower | 0 → 0 |
-| `Close` | 13.28 µs | 5.94 µs | 2.2x slower | 6 → 4 |
-| **Geomean** | **59 ns** | **703 ns** | **12x faster** | — |
+| Operation | os.File (ns/op) | mmap (ns/op) | Improvement | Allocations |
+|-----------|-----------------|--------------|-------------|-------------|
+| `Read` | 1138 | 24 | **47x faster** | 0 → 0 |
+| `ReadAt` | 640 | 9 | **68x faster** | 0 → 0 |
+| `ReadAt` (parallel) | 355 | 35 | **10x faster** | 0 → 0 |
+| `Write` | 1509 | 24 | **62x faster** | 0 → 0 |
+| `WriteAt` | 1025 | 10 | **106x faster** | 0 → 0 |
+| `Seek` | 357 | 12 | **30x faster** | 0 → 0 |
+| `ReadFrom` | 1683 | 61 | **28x faster** | 2 → 1 |
+| `WriteTo` | 1941 | 8 | **256x faster** | 3 → 0 |
+| `Stat` | 680 | 1606 | 2.4x slower | 1 → 2 |
+| `Sync` | 850 | 910 | 1.1x slower | 0 → 0 |
+| `Close` | 5.9 µs | 12.7 µs | 2.1x slower | 4 → 6 |
+| **Geomean** | **1043 ns** | **70 ns** | **15x faster** | — |
 
-**Key takeaway:** mmap eliminates syscall overhead, delivering **10-260x speedups** for I/O operations. Once mapped, reads and writes are simple memory copies with zero allocations.
+**Key takeaway:** mmap eliminates syscall overhead, delivering **10-200x++ speedups** for I/O operations. Once mapped, reads and writes are simple memory copies with zero allocations.
 
 Run benchmarks yourself:
 

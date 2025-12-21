@@ -174,8 +174,8 @@ func (f *MmapFile) Write(b []byte) (n int, err error) {
 //
 // It is safe for concurrent use (though overlapping writes MAY interleave).
 func (f *MmapFile) WriteAt(b []byte, off int64) (n int, err error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
+	f.mu.RLock()
+	defer f.mu.RUnlock()
 
 	if f.closed {
 		return 0, ErrClosed
