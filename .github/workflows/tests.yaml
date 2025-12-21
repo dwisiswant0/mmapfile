@@ -36,5 +36,5 @@ jobs:
 
   benchmarks:
     name: "Benchmarks"
-    needs: ["lint"]
+    needs: ["tests"]
     uses: ./.github/workflows/benchmarks.yaml
