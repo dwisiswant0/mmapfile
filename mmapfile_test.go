@@ -3,6 +3,7 @@ package mmapfile
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -10,6 +11,21 @@ import (
 	"sync"
 	"testing"
 )
+
+type failingWriter struct {
+	limit   int
+	written int
+}
+
+func (w *failingWriter) Write(p []byte) (n int, err error) {
+	if w.written+len(p) > w.limit {
+		n = w.limit - w.written
+		w.written += n
+		return n, errors.New("write failed")
+	}
+	w.written += len(p)
+	return len(p), nil
+}
 
 func TestOpen(t *testing.T) {
 	t.Run("existing file", func(t *testing.T) {
@@ -44,6 +60,26 @@ func TestOpen(t *testing.T) {
 
 		if f.Len() != 0 {
 			t.Errorf("Len() = %d, want 0", f.Len())
+		}
+	})
+
+	t.Run("permission denied", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "no_perm.txt")
+
+		// Create file
+		if err := os.WriteFile(path, []byte("test"), 0644); err != nil {
+			t.Fatalf("WriteFile failed: %v", err)
+		}
+
+		// Remove read permission
+		if err := os.Chmod(path, 0000); err != nil {
+			t.Skipf("Cannot change permissions: %v", err)
+		}
+		defer os.Chmod(path, 0644) // Restore for cleanup
+
+		_, err := Open(path)
+		if err == nil {
+			t.Error("Open should fail for permission denied")
 		}
 	})
 }
@@ -289,6 +325,46 @@ func TestWriteAt(t *testing.T) {
 			t.Errorf("WriteAt past EOF: got %v, want ErrWriteOutOfBounds", err)
 		}
 	})
+
+	t.Run("concurrent writes", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "concurrent.txt")
+
+		f, err := OpenFile(path, os.O_RDWR|os.O_CREATE, 0644, 100)
+		if err != nil {
+			t.Fatalf("OpenFile failed: %v", err)
+		}
+		defer f.Close()
+
+		var wg sync.WaitGroup
+		numGoroutines := 10
+		dataSize := 5
+
+		for i := range numGoroutines {
+			id := i
+			wg.Go(func() {
+				data := fmt.Appendf(nil, "data%d", id)
+				offset := int64(id * dataSize)
+				_, err := f.WriteAt(data, offset)
+				if err != nil {
+					t.Errorf("WriteAt failed: %v", err)
+				}
+			})
+		}
+		wg.Wait()
+
+		// Verify data
+		for i := range numGoroutines {
+			expected := fmt.Sprintf("data%d", i)
+			buf := make([]byte, len(expected))
+			_, err := f.ReadAt(buf, int64(i*dataSize))
+			if err != nil {
+				t.Errorf("ReadAt failed: %v", err)
+			}
+			if string(buf) != expected {
+				t.Errorf("ReadAt got %q, want %q", buf, expected)
+			}
+		}
+	})
 }
 
 func TestWriteString(t *testing.T) {
@@ -522,6 +598,26 @@ func TestReadFrom(t *testing.T) {
 	if string(buf) != "Data from reader" {
 		t.Errorf("ReadFrom content: got %q, want %q", buf, "Data from reader")
 	}
+
+	t.Run("with excess data", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "readfrom_excess.txt")
+
+		f, err := OpenFile(path, os.O_RDWR|os.O_CREATE, 0644, 10) // Small file
+		if err != nil {
+			t.Fatalf("OpenFile failed: %v", err)
+		}
+		defer f.Close()
+
+		// Reader with more data than file can hold
+		reader := strings.NewReader("This is more than 10 bytes of data")
+		n, err := f.ReadFrom(reader)
+		if err != ErrWriteOutOfBounds {
+			t.Errorf("ReadFrom got err %v, want ErrWriteOutOfBounds", err)
+		}
+		if n != 10 {
+			t.Errorf("ReadFrom read %d bytes, want 10", n)
+		}
+	})
 }
 
 func TestWriteTo(t *testing.T) {
@@ -542,6 +638,24 @@ func TestWriteTo(t *testing.T) {
 	if buf.Len() != f.Len() {
 		t.Errorf("buffer len = %d, want %d", buf.Len(), f.Len())
 	}
+
+	t.Run("with error", func(t *testing.T) {
+		f, err := Open("testdata/hello.txt")
+		if err != nil {
+			t.Fatalf("Open failed: %v", err)
+		}
+		defer f.Close()
+
+		// Writer that fails after some bytes
+		failingWriter := &failingWriter{limit: 5}
+		n, err := f.WriteTo(failingWriter)
+		if err == nil {
+			t.Error("WriteTo should fail with failing writer")
+		}
+		if n != 5 {
+			t.Errorf("WriteTo wrote %d bytes, want 5", n)
+		}
+	})
 }
 
 func TestEmptyFile(t *testing.T) {
