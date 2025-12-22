@@ -14,6 +14,6 @@ test:
 bench:
 	@mkdir $(benchdata) 2>/dev/null || true
 	@rm -rf $(results)
-	@go test -run - -bench=. -benchmem -count=10 | tee $(results)
+	@go test -run - -bench=. -benchmem -benchtime=125ms -count=10 | tee $(results)
 	@sed '/^Benchmark/ { /^Benchmark.*\/\(os\|mmap\)/!d; }' $(results) | sed -e "/^Benchmark.*\/os/d" | sed -e "/^Benchmark/s|/mmap||g" > $(mmap)
 	@sed '/^Benchmark/ { /^Benchmark.*\/\(os\|mmap\)/!d; }' $(results) | sed -e "/^Benchmark.*\/mmap/d" | sed -e "/^Benchmark/s|/os||g" > $(os)
