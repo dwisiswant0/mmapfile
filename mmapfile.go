@@ -45,6 +45,11 @@ type MmapFile struct {
 	platform any //nolint:unused // platform-specific data (e.g., file handle for fallback impl)
 }
 
+// fileHolder holds the underlying file.
+type fileHolder struct {
+	file *os.File
+}
+
 // Compile-time interface checks.
 var (
 	_ io.Reader       = (*MmapFile)(nil)
@@ -302,6 +307,10 @@ func (f *MmapFile) Stat() (os.FileInfo, error) {
 
 	if closed {
 		return nil, ErrClosed
+	}
+
+	if fh, ok := f.platform.(*fileHolder); ok && fh.file != nil {
+		return fh.file.Stat()
 	}
 
 	return os.Stat(name)
