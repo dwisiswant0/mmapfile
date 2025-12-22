@@ -119,60 +119,60 @@ data := f.Bytes()
   cpu: AMD EPYC 7763 64-Core Processor                
                         │    os.File     │                mmapfile                │
                         │     sec/op     │    sec/op      vs base                 │
-  Read/1KB-2                1727.50n ± 2%    36.80n ±  1%   -97.87% (p=0.000 n=10)
-  Read/10KB-2                3383.5n ± 1%    158.0n ±  0%   -95.33% (p=0.000 n=10)
-  Read/100KB-2               21.331µ ± 2%    1.584µ ±  0%   -92.58% (p=0.000 n=10)
-  Read/1MB-2                 218.62µ ± 1%    20.61µ ±  0%   -90.57% (p=0.000 n=10)
-  Read/10MB-2                2168.7µ ± 1%    207.0µ ±  2%   -90.45% (p=0.000 n=10)
-  Read/100MB-2               24.758m ± 1%    4.945m ±  2%   -80.03% (p=0.000 n=10)
-  Read/500MB-2               123.03m ± 0%    31.64m ±  1%   -74.28% (p=0.000 n=10)
-  Read/1GB-2                 251.43m ± 1%    77.65m ±  1%   -69.12% (p=0.000 n=10)
-  ReadAt/1KB-2              1151.50n ± 0%    23.45n ±  1%   -97.96% (p=0.000 n=10)
-  ReadAt/10KB-2              2593.0n ± 1%    142.1n ±  1%   -94.52% (p=0.000 n=10)
-  ReadAt/100KB-2             17.891µ ± 1%    1.476µ ±  1%   -91.75% (p=0.000 n=10)
-  ReadAt/1MB-2               192.09µ ± 1%    18.69µ ±  2%   -90.27% (p=0.000 n=10)
-  ReadAt/10MB-2              1899.0µ ± 2%    181.4µ ±  1%   -90.45% (p=0.000 n=10)
-  ReadAt/100MB-2             22.322m ± 1%    4.414m ±  3%   -80.23% (p=0.000 n=10)
-  ReadAt/500MB-2             110.74m ± 1%    27.29m ±  1%   -75.35% (p=0.000 n=10)
-  ReadAt/1GB-2               226.05m ± 1%    71.34m ±  1%   -68.44% (p=0.000 n=10)
-  ReadAtParallel/1KB-2       642.75n ± 4%    53.11n ± 18%   -91.74% (p=0.000 n=10)
-  ReadAtParallel/10KB-2      402.90n ± 4%    40.41n ±  3%   -89.97% (p=0.000 n=10)
-  ReadAtParallel/100KB-2     394.15n ± 4%    39.17n ± 20%   -90.06% (p=0.000 n=10)
-  ReadAtParallel/1MB-2       396.90n ± 5%    38.56n ±  5%   -90.28% (p=0.000 n=10)
-  ReadAtParallel/10MB-2      390.20n ± 4%    40.36n ±  9%   -89.66% (p=0.000 n=10)
-  ReadAtParallel/100MB-2     398.70n ± 3%    38.53n ±  5%   -90.34% (p=0.000 n=10)
-  ReadAtParallel/500MB-2     397.60n ± 2%    38.70n ±  5%   -90.27% (p=0.000 n=10)
-  ReadAtParallel/1GB-2       405.00n ± 3%    39.39n ±  5%   -90.27% (p=0.000 n=10)
-  Write/1KB-2               1487.50n ± 1%    33.41n ±  1%   -97.75% (p=0.000 n=10)
-  Write/10KB-2               2355.0n ± 1%    148.8n ±  0%   -93.68% (p=0.000 n=10)
-  Write/100KB-2              12.409µ ± 2%    2.081µ ±  0%   -83.23% (p=0.000 n=10)
-  Write/1MB-2                129.79µ ± 6%    42.38µ ±  0%   -67.34% (p=0.000 n=10)
-  Write/10MB-2               1436.8µ ± 7%    453.4µ ±  0%   -68.45% (p=0.000 n=10)
-  Write/100MB-2               27.29m ± 3%    21.15m ±  0%   -22.49% (p=0.000 n=10)
-  Write/500MB-2               314.8m ± 0%    520.2m ±  0%   +65.24% (p=0.000 n=10)
-  Write/1GB-2                 643.6m ± 0%   1063.4m ±  0%   +65.23% (p=0.000 n=10)
-  WriteAt/1KB-2             1039.50n ± 1%    20.62n ±  2%   -98.02% (p=0.000 n=10)
-  WriteAt/10KB-2             1864.0n ± 1%    110.0n ± 23%   -94.10% (p=0.000 n=10)
-  WriteAt/100KB-2            13.096µ ± 2%    2.063µ ±  0%   -84.25% (p=0.000 n=10)
-  WriteAt/1MB-2              133.18µ ± 3%    42.38µ ±  0%   -68.18% (p=0.000 n=10)
-  WriteAt/10MB-2             1341.9µ ± 2%    451.7µ ±  0%   -66.34% (p=0.000 n=10)
-  WriteAt/100MB-2             26.47m ± 6%    21.10m ±  0%   -20.27% (p=0.000 n=10)
-  WriteAt/500MB-2             315.1m ± 0%    519.7m ±  0%   +64.92% (p=0.000 n=10)
-  WriteAt/1GB-2               644.8m ± 0%   1064.7m ±  0%   +65.11% (p=0.000 n=10)
-  Seek-2                     359.60n ± 1%    11.87n ±  1%   -96.70% (p=0.000 n=10)
-  ReadFrom/1KB-2            1698.00n ± 0%    82.03n ±  1%   -95.17% (p=0.000 n=10)
-  ReadFrom/10KB-2            2566.5n ± 1%    169.9n ±  1%   -93.38% (p=0.000 n=10)
-  ReadFrom/100KB-2           12.847µ ± 2%    2.146µ ±  0%   -83.30% (p=0.000 n=10)
-  ReadFrom/1MB-2             132.27µ ± 1%    42.50µ ±  0%   -67.87% (p=0.000 n=10)
-  ReadFrom/10MB-2            1445.1µ ± 5%    452.7µ ±  1%   -68.67% (p=0.000 n=10)
-  ReadFrom/100MB-2            27.26m ± 4%    21.14m ±  1%   -22.47% (p=0.000 n=10)
-  ReadFrom/500MB-2            315.0m ± 0%    520.7m ±  0%   +65.29% (p=0.000 n=10)
-  ReadFrom/1GB-2              644.6m ± 0%   1064.7m ±  0%   +65.19% (p=0.000 n=10)
-  WriteTo-2                1931.000n ± 1%    7.516n ±  0%   -99.61% (p=0.000 n=10)
-  Stat-2                      701.0n ± 1%   1610.5n ±  1%  +129.73% (p=0.000 n=10)
-  Sync-2                      846.7n ± 1%    897.9n ±  2%    +6.04% (p=0.000 n=10)
-  Close-2                     5.919µ ± 1%   12.755µ ±  1%  +115.48% (p=0.000 n=10)
-  geomean                     118.5µ         21.07µ         -82.21%
+  Read/1KB-2                1722.50n ± 2%    36.87n ±  2%   -97.86% (p=0.000 n=10)
+  Read/10KB-2                3370.0n ± 2%    159.4n ±  1%   -95.27% (p=0.000 n=10)
+  Read/100KB-2               21.241µ ± 1%    1.613µ ±  7%   -92.41% (p=0.000 n=10)
+  Read/1MB-2                 218.43µ ± 2%    20.45µ ±  2%   -90.64% (p=0.000 n=10)
+  Read/10MB-2                2170.0µ ± 0%    207.2µ ±  1%   -90.45% (p=0.000 n=10)
+  Read/100MB-2               24.642m ± 1%    5.006m ±  1%   -79.68% (p=0.000 n=10)
+  Read/500MB-2               123.26m ± 1%    32.99m ±  0%   -73.24% (p=0.000 n=10)
+  Read/1GB-2                 252.52m ± 2%    80.08m ±  1%   -68.29% (p=0.000 n=10)
+  ReadAt/1KB-2              1145.00n ± 1%    23.40n ±  0%   -97.96% (p=0.000 n=10)
+  ReadAt/10KB-2              2603.0n ± 1%    157.3n ± 24%   -93.96% (p=0.000 n=10)
+  ReadAt/100KB-2             17.915µ ± 0%    1.471µ ±  0%   -91.79% (p=0.000 n=10)
+  ReadAt/1MB-2               192.15µ ± 1%    18.96µ ±  2%   -90.13% (p=0.000 n=10)
+  ReadAt/10MB-2              1955.3µ ± 3%    190.7µ ±  2%   -90.25% (p=0.000 n=10)
+  ReadAt/100MB-2             22.607m ± 1%    4.439m ±  3%   -80.36% (p=0.000 n=10)
+  ReadAt/500MB-2             112.24m ± 1%    27.72m ±  1%   -75.31% (p=0.000 n=10)
+  ReadAt/1GB-2               227.84m ± 1%    72.76m ±  6%   -68.07% (p=0.000 n=10)
+  ReadAtParallel/1KB-2       633.00n ± 3%    51.95n ±  9%   -91.79% (p=0.000 n=10)
+  ReadAtParallel/10KB-2      395.75n ± 5%    36.84n ±  0%   -90.69% (p=0.000 n=10)
+  ReadAtParallel/100KB-2     388.85n ± 8%    36.86n ±  0%   -90.52% (p=0.000 n=10)
+  ReadAtParallel/1MB-2       388.80n ± 4%    36.84n ±  0%   -90.52% (p=0.000 n=10)
+  ReadAtParallel/10MB-2      393.10n ± 5%    36.86n ±  0%   -90.62% (p=0.000 n=10)
+  ReadAtParallel/100MB-2     400.00n ± 6%    36.88n ±  0%   -90.78% (p=0.000 n=10)
+  ReadAtParallel/500MB-2     401.35n ± 4%    38.72n ±  2%   -90.35% (p=0.000 n=10)
+  ReadAtParallel/1GB-2       399.30n ± 5%    36.94n ±  2%   -90.75% (p=0.000 n=10)
+  Write/1KB-2               1497.00n ± 1%    33.63n ± 13%   -97.75% (p=0.000 n=10)
+  Write/10KB-2               2374.0n ± 1%    121.9n ±  0%   -94.87% (p=0.000 n=10)
+  Write/100KB-2              12.552µ ± 2%    2.080µ ±  0%   -83.42% (p=0.000 n=10)
+  Write/1MB-2                133.08µ ± 6%    46.01µ ±  0%   -65.43% (p=0.000 n=10)
+  Write/10MB-2               1352.5µ ± 3%    491.2µ ±  0%   -63.68% (p=0.000 n=10)
+  Write/100MB-2               26.64m ± 1%    21.41m ±  0%   -19.63% (p=0.000 n=10)
+  Write/500MB-2               317.6m ± 0%    524.6m ±  1%   +65.19% (p=0.000 n=10)
+  Write/1GB-2                 649.7m ± 1%   1072.1m ±  0%   +65.01% (p=0.000 n=10)
+  WriteAt/1KB-2             1037.50n ± 1%    20.30n ±  0%   -98.04% (p=0.000 n=10)
+  WriteAt/10KB-2             1867.0n ± 1%    110.0n ±  1%   -94.11% (p=0.000 n=10)
+  WriteAt/100KB-2            12.216µ ± 3%    2.062µ ±  0%   -83.12% (p=0.000 n=10)
+  WriteAt/1MB-2              139.24µ ± 5%    45.99µ ±  0%   -66.97% (p=0.000 n=10)
+  WriteAt/10MB-2             1409.0µ ± 7%    490.4µ ±  0%   -65.20% (p=0.000 n=10)
+  WriteAt/100MB-2             26.94m ± 3%    21.45m ±  1%   -20.35% (p=0.000 n=10)
+  WriteAt/500MB-2             316.6m ± 0%    523.7m ±  0%   +65.40% (p=0.000 n=10)
+  WriteAt/1GB-2               648.5m ± 1%   1072.0m ±  0%   +65.31% (p=0.000 n=10)
+  Seek-2                     355.15n ± 1%    12.22n ±  1%   -96.56% (p=0.000 n=10)
+  ReadFrom/1KB-2            1711.50n ± 1%    84.14n ±  1%   -95.08% (p=0.000 n=10)
+  ReadFrom/10KB-2            2562.0n ± 1%    167.7n ±  1%   -93.45% (p=0.000 n=10)
+  ReadFrom/100KB-2           12.763µ ± 2%    2.148µ ±  1%   -83.17% (p=0.000 n=10)
+  ReadFrom/1MB-2             138.24µ ± 3%    46.11µ ±  0%   -66.65% (p=0.000 n=10)
+  ReadFrom/10MB-2            1373.8µ ± 3%    501.2µ ±  2%   -63.52% (p=0.000 n=10)
+  ReadFrom/100MB-2            26.24m ± 5%    21.42m ±  1%   -18.39% (p=0.000 n=10)
+  ReadFrom/500MB-2            319.6m ± 1%    523.8m ±  0%   +63.91% (p=0.000 n=10)
+  ReadFrom/1GB-2              649.7m ± 1%   1082.6m ±  1%   +66.65% (p=0.000 n=10)
+  WriteTo-2                1926.500n ± 1%    7.604n ±  0%   -99.61% (p=0.000 n=10)
+  Stat-2                      699.7n ± 1%    713.1n ±  1%    +1.91% (p=0.000 n=10)
+  Sync-2                      844.0n ± 1%    877.8n ±  1%    +4.00% (p=0.000 n=10)
+  Close-2                     5.901µ ± 1%   12.707µ ±  1%  +115.34% (p=0.000 n=10)
+  geomean                     118.4µ         20.87µ         -82.38%
 
                         │   os.File    │                mmapfile                 │
                         │     B/op     │    B/op     vs base                     │
@@ -226,9 +226,9 @@ data := f.Bytes()
   ReadFrom/500MB-2         56.00 ± 0%     64.00 ± 0%   +14.29% (p=0.000 n=10)
   ReadFrom/1GB-2           56.00 ± 0%     64.00 ± 0%   +14.29% (p=0.000 n=10)
   WriteTo-2                40.00 ± 0%      0.00 ± 0%  -100.00% (p=0.000 n=10)
-  Stat-2                   208.0 ± 0%     232.0 ± 0%   +11.54% (p=0.000 n=10)
+  Stat-2                   208.0 ± 0%     208.0 ± 0%         ~ (p=1.000 n=10) ¹
   Sync-2                   0.000 ± 0%     0.000 ± 0%         ~ (p=1.000 n=10) ¹
-  Close-2                  216.0 ± 0%     536.0 ± 0%  +148.15% (p=0.000 n=10)
+  Close-2                  216.0 ± 7%     544.0 ± 0%  +151.85% (p=0.000 n=10)
   geomean                             ²               ?                       ² ³
   ¹ all samples are equal
   ² summaries must be >0 to compute geomean
@@ -286,9 +286,9 @@ data := f.Bytes()
   ReadFrom/500MB-2         2.000 ± 0%     2.000 ± 0%         ~ (p=1.000 n=10) ¹
   ReadFrom/1GB-2           2.000 ± 0%     2.000 ± 0%         ~ (p=1.000 n=10) ¹
   WriteTo-2                3.000 ± 0%     0.000 ± 0%  -100.00% (p=0.000 n=10)
-  Stat-2                   1.000 ± 0%     2.000 ± 0%  +100.00% (p=0.000 n=10)
+  Stat-2                   1.000 ± 0%     1.000 ± 0%         ~ (p=1.000 n=10) ¹
   Sync-2                   0.000 ± 0%     0.000 ± 0%         ~ (p=1.000 n=10) ¹
-  Close-2                  4.000 ± 0%     6.000 ± 0%   +50.00% (p=0.000 n=10)
+  Close-2                  4.000 ± 0%     7.000 ± 0%   +75.00% (p=0.000 n=10)
   geomean                             ²               ?                       ² ³
   ¹ all samples are equal
   ² summaries must be >0 to compute geomean
@@ -300,64 +300,64 @@ data := f.Bytes()
 
 | Operation | Size | `os.File` | `mmapfile` | Improvement | Allocs |
 |-----------|------|-----------|------------|-------------|--------|
-| `Read` | 1KB | 1727.5ns | 36.8ns | **47x faster** | 0 → 0 |
-| `Read` | 10KB | 3383.5ns | 158.0ns | **21x faster** | 0 → 0 |
-| `Read` | 100KB | 21.33µs | 1.58µs | **13x faster** | 0 → 0 |
-| `Read` | 1MB | 218.6µs | 20.6µs | **11x faster** | 0 → 0 |
-| `Read` | 10MB | 2168.7µs | 207.0µs | **10x faster** | 0 → 0 |
-| `Read` | 100MB | 24.76ms | 4.95ms | **5x faster** | 0 → 0 |
-| `Read` | 500MB | 123.0ms | 31.6ms | **4x faster** | 0 → 0 |
-| `Read` | 1GB | 251.4ms | 77.7ms | **3x faster** | 0 → 0 |
-| `ReadAt` | 1KB | 1151.5ns | 23.5ns | **49x faster** | 0 → 0 |
-| `ReadAt` | 10KB | 2593.0ns | 142.1ns | **18x faster** | 0 → 0 |
-| `ReadAt` | 100KB | 17.89µs | 1.48µs | **12x faster** | 0 → 0 |
-| `ReadAt` | 1MB | 192.1µs | 18.7µs | **10x faster** | 0 → 0 |
-| `ReadAt` | 10MB | 1899.0µs | 181.4µs | **10x faster** | 0 → 0 |
-| `ReadAt` | 100MB | 22.32ms | 4.41ms | **5x faster** | 0 → 0 |
-| `ReadAt` | 500MB | 110.7ms | 27.3ms | **4x faster** | 0 → 0 |
-| `ReadAt` | 1GB | 226.1ms | 71.3ms | **3x faster** | 0 → 0 |
-| `ReadAt` (parallel) | 1KB | 642.8ns | 53.1ns | **12x faster** | 0 → 0 |
-| `ReadAt` (parallel) | 10KB | 402.9ns | 40.4ns | **10x faster** | 0 → 0 |
-| `ReadAt` (parallel) | 100KB | 394.2ns | 39.2ns | **10x faster** | 0 → 0 |
-| `ReadAt` (parallel) | 1MB | 396.9ns | 38.6ns | **10x faster** | 0 → 0 |
-| `ReadAt` (parallel) | 10MB | 390.2ns | 40.4ns | **10x faster** | 0 → 0 |
-| `ReadAt` (parallel) | 100MB | 398.7ns | 38.5ns | **10x faster** | 0 → 0 |
-| `ReadAt` (parallel) | 500MB | 397.6ns | 38.7ns | **10x faster** | 0 → 0 |
-| `ReadAt` (parallel) | 1GB | 405.0ns | 39.4ns | **10x faster** | 0 → 0 |
-| `Write` | 1KB | 1487.5ns | 33.4ns | **45x faster** | 0 → 0 |
-| `Write` | 10KB | 2355.0ns | 148.8ns | **16x faster** | 0 → 0 |
-| `Write` | 100KB | 12.41µs | 2.08µs | **6x faster** | 0 → 0 |
-| `Write` | 1MB | 129.8µs | 42.4µs | **3x faster** | 0 → 0 |
-| `Write` | 10MB | 1436.8µs | 453.4µs | **3x faster** | 0 → 0 |
-| `Write` | 100MB | 27.29ms | 21.15ms | **1.3x faster** | 0 → 0 |
-| `Write` | 500MB | 314.8ms | 520.2ms | 1.7x slower | 0 → 0 |
-| `Write` | 1GB | 643.6ms | 1063.4ms | 1.7x slower | 0 → 0 |
-| `WriteAt` | 1KB | 1039.5ns | 20.6ns | **50x faster** | 0 → 0 |
-| `WriteAt` | 10KB | 1864.0ns | 110.0ns | **17x faster** | 0 → 0 |
-| `WriteAt` | 100KB | 13.10µs | 2.06µs | **6x faster** | 0 → 0 |
-| `WriteAt` | 1MB | 133.2µs | 42.4µs | **3x faster** | 0 → 0 |
-| `WriteAt` | 10MB | 1341.9µs | 451.7µs | **3x faster** | 0 → 0 |
-| `WriteAt` | 100MB | 26.47ms | 21.10ms | **1.3x faster** | 0 → 0 |
-| `WriteAt` | 500MB | 315.1ms | 519.7ms | 1.6x slower | 0 → 0 |
-| `WriteAt` | 1GB | 644.8ms | 1064.7ms | 1.7x slower | 0 → 0 |
-| `Seek` | - | 359.6ns | 11.9ns | **30x faster** | 0 → 0 |
-| `ReadFrom` | 1KB | 1698.0ns | 82.0ns | **21x faster** | 2 → 2 |
-| `ReadFrom` | 10KB | 2566.5ns | 169.9ns | **15x faster** | 2 → 2 |
-| `ReadFrom` | 100KB | 12.85µs | 2.15µs | **6x faster** | 2 → 2 |
-| `ReadFrom` | 1MB | 132.3µs | 42.5µs | **3x faster** | 2 → 2 |
-| `ReadFrom` | 10MB | 1445.1µs | 452.7µs | **3x faster** | 2 → 2 |
-| `ReadFrom` | 100MB | 27.26ms | 21.14ms | **1.3x faster** | 2 → 2 |
-| `ReadFrom` | 500MB | 315.0ms | 520.7ms | 1.7x slower | 2 → 2 |
-| `ReadFrom` | 1GB | 644.6ms | 1064.7ms | 1.7x slower | 2 → 2 |
-| `WriteTo` | - | 1931.0ns | 7.5ns | **257x faster** | 3 → 0 |
-| `Stat` | - | 701.0ns | 1610.5ns | 2.3x slower | 1 → 2 |
-| `Sync` | - | 846.7ns | 897.9ns | 1.1x slower | 0 → 0 |
-| `Close` | - | 5.92µs | 12.76µs | 2.2x slower | 4 → 6 |
-| **Geomean** | - | **118.5µs** | **21.07µs** | **~6x faster** | - |
+| `Read` | 1KB | 1722.5ns | 36.9ns | **47x faster** | 0 → 0 |
+| `Read` | 10KB | 3370ns | 159ns | **21x faster** | 0 → 0 |
+| `Read` | 100KB | 21.24µs | 1.61µs | **13x faster** | 0 → 0 |
+| `Read` | 1MB | 218.4µs | 20.5µs | **11x faster** | 0 → 0 |
+| `Read` | 10MB | 2170µs | 207µs | **10x faster** | 0 → 0 |
+| `Read` | 100MB | 24.64ms | 5.01ms | **5x faster** | 0 → 0 |
+| `Read` | 500MB | 123.3ms | 33.0ms | **4x faster** | 0 → 0 |
+| `Read` | 1GB | 252.5ms | 80.1ms | **3x faster** | 0 → 0 |
+| `ReadAt` | 1KB | 1145ns | 23.4ns | **49x faster** | 0 → 0 |
+| `ReadAt` | 10KB | 2603ns | 157ns | **17x faster** | 0 → 0 |
+| `ReadAt` | 100KB | 17.92µs | 1.47µs | **12x faster** | 0 → 0 |
+| `ReadAt` | 1MB | 192.2µs | 19.0µs | **10x faster** | 0 → 0 |
+| `ReadAt` | 10MB | 1955µs | 191µs | **10x faster** | 0 → 0 |
+| `ReadAt` | 100MB | 22.61ms | 4.44ms | **5x faster** | 0 → 0 |
+| `ReadAt` | 500MB | 112.2ms | 27.7ms | **4x faster** | 0 → 0 |
+| `ReadAt` | 1GB | 227.8ms | 72.8ms | **3x faster** | 0 → 0 |
+| `ReadAt` (parallel) | 1KB | 633ns | 52ns | **12x faster** | 0 → 0 |
+| `ReadAt` (parallel) | 10KB | 396ns | 37ns | **11x faster** | 0 → 0 |
+| `ReadAt` (parallel) | 100KB | 389ns | 37ns | **11x faster** | 0 → 0 |
+| `ReadAt` (parallel) | 1MB | 389ns | 37ns | **11x faster** | 0 → 0 |
+| `ReadAt` (parallel) | 10MB | 393ns | 37ns | **11x faster** | 0 → 0 |
+| `ReadAt` (parallel) | 100MB | 400ns | 37ns | **11x faster** | 0 → 0 |
+| `ReadAt` (parallel) | 500MB | 401ns | 39ns | **10x faster** | 0 → 0 |
+| `ReadAt` (parallel) | 1GB | 399ns | 37ns | **11x faster** | 0 → 0 |
+| `Write` | 1KB | 1497ns | 33.6ns | **45x faster** | 0 → 0 |
+| `Write` | 10KB | 2374ns | 122ns | **19x faster** | 0 → 0 |
+| `Write` | 100KB | 12.55µs | 2.08µs | **6x faster** | 0 → 0 |
+| `Write` | 1MB | 133.1µs | 46.0µs | **3x faster** | 0 → 0 |
+| `Write` | 10MB | 1353µs | 491µs | **3x faster** | 0 → 0 |
+| `Write` | 100MB | 26.64ms | 21.41ms | **1.2x faster** | 0 → 0 |
+| `Write` | 500MB | 318ms | 525ms | 1.7x slower | 0 → 0 |
+| `Write` | 1GB | 650ms | 1072ms | 1.7x slower | 0 → 0 |
+| `WriteAt` | 1KB | 1038ns | 20.3ns | **51x faster** | 0 → 0 |
+| `WriteAt` | 10KB | 1867ns | 110ns | **17x faster** | 0 → 0 |
+| `WriteAt` | 100KB | 12.22µs | 2.06µs | **6x faster** | 0 → 0 |
+| `WriteAt` | 1MB | 139.2µs | 46.0µs | **3x faster** | 0 → 0 |
+| `WriteAt` | 10MB | 1409µs | 490µs | **3x faster** | 0 → 0 |
+| `WriteAt` | 100MB | 26.94ms | 21.45ms | **1.3x faster** | 0 → 0 |
+| `WriteAt` | 500MB | 317ms | 524ms | 1.7x slower | 0 → 0 |
+| `WriteAt` | 1GB | 649ms | 1072ms | 1.7x slower | 0 → 0 |
+| `Seek` | - | 355ns | 12.2ns | **29x faster** | 0 → 0 |
+| `ReadFrom` | 1KB | 1712ns | 84ns | **20x faster** | 2 → 2 |
+| `ReadFrom` | 10KB | 2562ns | 168ns | **15x faster** | 2 → 2 |
+| `ReadFrom` | 100KB | 12.76µs | 2.15µs | **6x faster** | 2 → 2 |
+| `ReadFrom` | 1MB | 138.2µs | 46.1µs | **3x faster** | 2 → 2 |
+| `ReadFrom` | 10MB | 1374µs | 501µs | **3x faster** | 2 → 2 |
+| `ReadFrom` | 100MB | 26.24ms | 21.42ms | **1.2x faster** | 2 → 2 |
+| `ReadFrom` | 500MB | 320ms | 524ms | 1.6x slower | 2 → 2 |
+| `ReadFrom` | 1GB | 650ms | 1083ms | 1.7x slower | 2 → 2 |
+| `WriteTo` | - | 1927ns | 7.6ns | **254x faster** | 3 → 0 |
+| `Stat` | - | 700ns | 713ns | 1.0x slower | 1 → 1 |
+| `Sync` | - | 844ns | 878ns | 1.0x slower | 0 → 0 |
+| `Close` | - | 5.90µs | 12.71µs | 2.2x slower | 4 → 7 |
+| **Geomean** | - | **118µs** | **20.9µs** | **~6x faster** | - |
 
 **Key takeaway:**
 
-mmapfile trades syscalls for memory ops, crushing latency-bound workloads (**3–257x speedups**):
+mmapfile trades syscalls for memory ops, crushing latency-bound workloads:
 
 * **All reads** (1KB–1GB): **3–50x faster**. Simple `copy(b, f.data[off:])` vs repeated `read(2)`-scales to huge files.
 * **Writes ≤100MB**: **6–50x** wins. Syscall cost (~200ns) >> `memcpy`; ideal for frequent small ops.

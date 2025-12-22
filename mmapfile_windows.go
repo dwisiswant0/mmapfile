@@ -52,10 +52,10 @@ func OpenFile(name string, flag int, perm os.FileMode, size int64) (*MmapFile, e
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
 
 	fi, err := f.Stat()
 	if err != nil {
+		f.Close()
 		return nil, err
 	}
 
@@ -79,6 +79,7 @@ func OpenFile(name string, flag int, perm os.FileMode, size int64) (*MmapFile, e
 			data:     nil,
 			name:     name,
 			writable: writable,
+			platform: &fileHolder{file: f},
 		}, nil
 	}
 
@@ -121,6 +122,8 @@ func OpenFile(name string, flag int, perm os.FileMode, size int64) (*MmapFile, e
 	}
 	runtime.SetFinalizer(mf, (*MmapFile).Close)
 
+	mf.platform = &fileHolder{file: f}
+
 	return mf, nil
 }
 
@@ -136,17 +139,30 @@ func (f *MmapFile) Close() error {
 	}
 	f.closed = true
 
+	var err error
+
+	if fh, ok := f.platform.(*fileHolder); ok && fh.file != nil {
+		if cErr := fh.file.Close(); cErr != nil {
+			err = cErr
+		}
+		f.platform = nil
+	}
+
 	runtime.SetFinalizer(f, nil)
 
 	if len(f.data) == 0 {
 		f.data = nil
-		return nil
+		return err
 	}
 
 	addr := uintptr(unsafe.Pointer(&f.data[0]))
 	f.data = nil
 
-	return syscall.UnmapViewOfFile(addr)
+	if unmapErr := syscall.UnmapViewOfFile(addr); unmapErr != nil && err == nil {
+		err = unmapErr
+	}
+
+	return err
 }
 
 // Sync flushes changes to the underlying file.
@@ -163,7 +179,19 @@ func (f *MmapFile) Sync() error {
 		return nil
 	}
 
-	return flushViewOfFile(uintptr(unsafe.Pointer(&f.data[0])), uintptr(len(f.data)))
+	var err error
+
+	if fh, ok := f.platform.(*fileHolder); ok && fh.file != nil {
+		if sErr := fh.file.Sync(); sErr != nil {
+			err = sErr
+		}
+	}
+
+	if flushErr := flushViewOfFile(uintptr(unsafe.Pointer(&f.data[0])), uintptr(len(f.data))); flushErr != nil && err == nil {
+		err = flushErr
+	}
+
+	return err
 }
 
 var (

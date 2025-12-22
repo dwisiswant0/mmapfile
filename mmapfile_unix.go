@@ -7,7 +7,6 @@ import (
 	"os"
 	"runtime"
 	"syscall"
-	"unsafe"
 )
 
 // Open memory-maps the named file for reading.
@@ -50,10 +49,10 @@ func OpenFile(name string, flag int, perm os.FileMode, size int64) (*MmapFile, e
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = f.Close() }()
 
 	fi, err := f.Stat()
 	if err != nil {
+		_ = f.Close()
 		return nil, err
 	}
 
@@ -76,6 +75,7 @@ func OpenFile(name string, flag int, perm os.FileMode, size int64) (*MmapFile, e
 			data:     nil,
 			name:     name,
 			writable: writable,
+			platform: &fileHolder{file: f},
 		}, nil
 	}
 
@@ -104,6 +104,8 @@ func OpenFile(name string, flag int, perm os.FileMode, size int64) (*MmapFile, e
 
 	runtime.SetFinalizer(mf, (*MmapFile).Close)
 
+	mf.platform = &fileHolder{file: f}
+
 	return mf, nil
 }
 
@@ -119,17 +121,30 @@ func (f *MmapFile) Close() error {
 	}
 	f.closed = true
 
+	var err error
+
+	if fh, ok := f.platform.(*fileHolder); ok && fh.file != nil {
+		if cErr := fh.file.Close(); cErr != nil {
+			err = cErr
+		}
+		f.platform = nil
+	}
+
 	runtime.SetFinalizer(f, nil)
 
 	if len(f.data) == 0 {
 		f.data = nil
-		return nil
+		return err
 	}
 
 	data := f.data
 	f.data = nil
 
-	return syscall.Munmap(data)
+	if munErr := syscall.Munmap(data); munErr != nil && err == nil {
+		err = munErr
+	}
+
+	return err
 }
 
 // Sync flushes changes to the underlying file.
@@ -146,13 +161,8 @@ func (f *MmapFile) Sync() error {
 		return nil
 	}
 
-	// MS_SYNC: synchronous write
-	_, _, errno := syscall.Syscall(syscall.SYS_MSYNC,
-		uintptr(unsafe.Pointer(&f.data[0])),
-		uintptr(len(f.data)),
-		uintptr(syscall.MS_SYNC))
-	if errno != 0 {
-		return errno
+	if fh, ok := f.platform.(*fileHolder); ok && fh.file != nil {
+		return fh.file.Sync()
 	}
 
 	return nil

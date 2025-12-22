@@ -8,12 +8,6 @@ import (
 	"os"
 )
 
-// fallbackFile holds the underlying file for platforms without mmap support.
-// This is stored as interface{} in MmapFile.platform
-type fallbackFile struct {
-	file *os.File
-}
-
 // Open memory-maps the named file for reading.
 //
 // On unsupported platforms, this falls back to regular file I/O.
@@ -58,7 +52,7 @@ func OpenFile(name string, flag int, perm os.FileMode, size int64) (*MmapFile, e
 
 	fi, err := f.Stat()
 	if err != nil {
-		f.Close()
+		_ = f.Close()
 		return nil, err
 	}
 
@@ -66,40 +60,40 @@ func OpenFile(name string, flag int, perm os.FileMode, size int64) (*MmapFile, e
 
 	if create && fileSize == 0 && size > 0 {
 		if err := f.Truncate(size); err != nil {
-			f.Close()
+			_ = f.Close()
 			return nil, fmt.Errorf("mmapfile: failed to set file size: %w", err)
 		}
 		fileSize = size
 	} else if trunc && size > 0 {
 		if err := f.Truncate(size); err != nil {
-			f.Close()
+			_ = f.Close()
 			return nil, fmt.Errorf("mmapfile: failed to truncate file: %w", err)
 		}
 		fileSize = size
 	}
 
 	if fileSize == 0 {
-		f.Close()
 		return &MmapFile{
 			data:     nil,
 			name:     name,
 			writable: writable,
+			platform: &fileHolder{file: f},
 		}, nil
 	}
 
 	if fileSize < 0 {
-		f.Close()
+		_ = f.Close()
 		return nil, fmt.Errorf("mmapfile: file %q has negative size", name)
 	}
 	if fileSize != int64(int(fileSize)) {
-		f.Close()
+		_ = f.Close()
 		return nil, fmt.Errorf("mmapfile: file %q is too large", name)
 	}
 
 	// Fallback: read entire file into memory
 	data := make([]byte, fileSize)
 	if _, err := io.ReadFull(f, data); err != nil {
-		f.Close()
+		_ = f.Close()
 		return nil, fmt.Errorf("mmapfile: failed to read file: %w", err)
 	}
 
@@ -107,13 +101,7 @@ func OpenFile(name string, flag int, perm os.FileMode, size int64) (*MmapFile, e
 		data:     data,
 		name:     name,
 		writable: writable,
-	}
-
-	if writable {
-		// Store file handle for sync/close
-		mf.platform = &fallbackFile{file: f}
-	} else {
-		f.Close()
+		platform: &fileHolder{file: f},
 	}
 
 	return mf, nil
@@ -130,15 +118,15 @@ func (f *MmapFile) Close() error {
 	f.closed = true
 
 	var err error
-	if fb, ok := f.platform.(*fallbackFile); ok && fb != nil && fb.file != nil {
+	if fh, ok := f.platform.(*fileHolder); ok && fh != nil && fh.file != nil {
 		if f.writable && len(f.data) > 0 {
-			if _, seekErr := fb.file.Seek(0, io.SeekStart); seekErr != nil {
+			if _, seekErr := fh.file.Seek(0, io.SeekStart); seekErr != nil {
 				err = seekErr
-			} else if _, writeErr := fb.file.Write(f.data); writeErr != nil {
+			} else if _, writeErr := fh.file.Write(f.data); writeErr != nil {
 				err = writeErr
 			}
 		}
-		if closeErr := fb.file.Close(); closeErr != nil && err == nil {
+		if closeErr := fh.file.Close(); closeErr != nil && err == nil {
 			err = closeErr
 		}
 		f.platform = nil
@@ -158,17 +146,17 @@ func (f *MmapFile) Sync() error {
 		return ErrClosed
 	}
 
-	fb, ok := f.platform.(*fallbackFile)
-	if !f.writable || !ok || fb == nil || fb.file == nil || len(f.data) == 0 {
+	fh, ok := f.platform.(*fileHolder)
+	if !f.writable || !ok || fh == nil || fh.file == nil || len(f.data) == 0 {
 		return nil
 	}
 
-	if _, err := fb.file.Seek(0, io.SeekStart); err != nil {
+	if _, err := fh.file.Seek(0, io.SeekStart); err != nil {
 		return err
 	}
-	if _, err := fb.file.Write(f.data); err != nil {
+	if _, err := fh.file.Write(f.data); err != nil {
 		return err
 	}
 
-	return fb.file.Sync()
+	return fh.file.Sync()
 }
