@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -63,7 +64,11 @@ func TestOpen(t *testing.T) {
 		}
 	})
 
-	t.Run("permission denied", func(t *testing.T) {
+	t.Run("unix permission denied", func(t *testing.T) {
+		if runtime.GOOS == "windows" {
+			t.Skip("Unix permission test")
+		}
+
 		path := filepath.Join(t.TempDir(), "no_perm.txt")
 
 		// Create file
@@ -82,6 +87,7 @@ func TestOpen(t *testing.T) {
 			t.Error("Open should fail for permission denied")
 		}
 	})
+
 }
 
 func TestOpenFile(t *testing.T) {
