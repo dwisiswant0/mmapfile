@@ -1,7 +1,7 @@
 benchdata := benchdata
 results := $(benchdata)/results
-mmap := $(benchdata)/mmap
-os := $(benchdata)/os
+mmap := $(benchdata)/mmapfile
+os := $(benchdata)/os.File
 
 .PHONY: all
 all: test bench
