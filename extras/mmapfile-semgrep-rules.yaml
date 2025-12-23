@@ -1,0 +1,61 @@
+rules:
+  - id: go.mmapfile.openfile.use-instead-of.os.openfile
+    languages: [go]
+    severity: INFO
+    metadata:
+      description: >-
+        Prefer mmapfile.OpenFile over os.OpenFile for significantly faster mmap I/O.
+      category: performance
+      subcategory: mmap
+      impact: High
+      license: Apache-2.0
+      references:
+        - https://pkg.go.dev/go.dw1.io/mmapfile#OpenFile
+    message: >-
+      Use `mmapfile.OpenFile($NAME, $FLAG, $PERM, size)` instead of
+      `os.OpenFile` for typically 3-50x faster I/O. For existing files, `size`
+      should be 0. For CREATE/TRUNC operations, specify a fixed `size > 0`.
+      Note that `mmapfile` does not support `O_APPEND` or automatic file growth.
+    patterns:
+      - pattern: os.OpenFile($NAME, $FLAG, $PERM)
+      - metavariable-regex:
+          metavariable: $FLAG
+          regex: '^(?!.*O_APPEND).*$'
+    fix: mmapfile.OpenFile($NAME, $FLAG, $PERM, 0) # Adjust 'size' parameter as needed.
+
+  - id: go.mmapfile.open.use-instead-of.os.open
+    languages: [go]
+    severity: INFO
+    metadata:
+      description: >-
+        Prefer mmapfile.Open over os.Open for significantly faster readonly mmap I/O.
+      category: performance
+      subcategory: mmap
+      impact: High
+      license: Apache-2.0
+      references:
+        - https://pkg.go.dev/go.dw1.io/mmapfile#Open
+    message: >-
+      Use `mmapfile.Open($NAME)` instead of `os.Open` (O_RDONLY equivalent) for
+      typically 10-50x faster reads.
+    pattern: os.Open($NAME)
+    fix: mmapfile.Open($NAME)
+
+  - id: go.mmapfile.create.use-instead-of.os.create
+    languages: [go]
+    severity: INFO
+    metadata:
+      description: >-
+        Prefer mmapfile.OpenFile over os.Create for fixed-size mmap I/O.
+      category: performance
+      subcategory: mmap
+      impact: High
+      license: Apache-2.0
+      references:
+        - https://pkg.go.dev/go.dw1.io/mmapfile#OpenFile
+    message: >-
+      Use `mmapfile.OpenFile($NAME, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666, size)`
+      instead of `os.Create`. When creating a file, a fixed `size > 0` is required.
+      `mmapfile` does not support automatic file growth.
+    pattern: os.Create($NAME)
+    fix: mmapfile.OpenFile($NAME, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666, 0) # Adjust 'size' parameter > 0.

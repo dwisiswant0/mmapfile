@@ -10,9 +10,9 @@ An [`*os.File`](https://pkg.go.dev/os#File)-like type backed by memory-mapped I/
 ## Features
 
 * **[`*os.File`](https://pkg.go.dev/os#File)-compatible interface**: implements [`io.Reader`](https://pkg.go.dev/io#Reader), [`io.Writer`](https://pkg.go.dev/io#Writer), [`io.Seeker`](https://pkg.go.dev/io#Seeker), [`io.ReaderAt`](https://pkg.go.dev/io#ReaderAt), [`io.WriterAt`](https://pkg.go.dev/io#WriterAt), [`io.Closer`](https://pkg.go.dev/io#Closer), [`io.ReaderFrom`](https://pkg.go.dev/io#ReaderFrom), [`io.WriterTo`](https://pkg.go.dev/io#WriterTo), and [`io.StringWriter`](https://pkg.go.dev/io#StringWriter).
-* **Zero-copy reads**: direct access to file contents via `Bytes()` method.
+* **Zero-copy reads**: direct access to file contents via [`Bytes()`](https://github.com/semgrep/semgrep) method.
 * **Cross-platform**: native mmap on Linux, Darwin, FreeBSD, OpenBSD, NetBSD, DragonFly, and Windows; fallback for other platforms.
-* **Thread-safe**: concurrent `ReadAt`/`WriteAt` operations are safe.
+* **Thread-safe**: concurrent [`ReadAt`](https://pkg.go.dev/go.dw1.io/mmapfile#MmapFile.ReadAt)/[`WriteAt`](https://pkg.go.dev/go.dw1.io/mmapfile#MmapFile.WriteAt) operations are safe.
 * **Zero allocations**: all I/O operations are allocation-free.
 
 ## Install
@@ -361,12 +361,12 @@ mmapfile trades syscalls for memory ops, crushing latency-bound workloads:
 
 * **All reads** (1KB–1GB): **3–50x faster**. Simple `copy(b, f.data[off:])` vs repeated `read(2)`-scales to huge files.
 * **Writes ≤100MB**: **6–50x** wins. Syscall cost (~200ns) >> `memcpy`; ideal for frequent small ops.
-* **Bulk sequential writes >500MB**: `os.File` ~1.7x ahead (644ms vs 1s+). Kernel magic:
+* **Bulk sequential writes >500MB**: [`*os.File`](https://pkg.go.dev/os#File) ~1.7x ahead (644ms vs 1s+). Kernel magic:
   * Page cache absorbs data (no user double-buffering: heap->mmap).
   * Write-behind: async clustering to disk.
   * Readahead/DMA pipelines for sequential throughput.
   * mmap: pure `memcpy` to dirty pages (~1GB/s BW-bound on CPU; no flush/sync in bench for apple-to-apple op perf).
-* **Random/parallel**: mmapfile **10x+** (`ReadAt` parallel constant ~40ns even 1GB). No seeks/syscalls.
+* **Random/parallel**: mmapfile **10x+** ([`ReadAt`](https://pkg.go.dev/go.dw1.io/mmapfile#MmapFile.ReadAt) parallel constant ~40ns even 1GB). No seeks/syscalls.
 
 **Overall geomean: ~6x faster** across 50+ benches.
 
@@ -379,9 +379,9 @@ mmapfile trades syscalls for memory ops, crushing latency-bound workloads:
 >   copy(data[off:], src[:n])
 >   ```
 >
->   To bypass `WriteAt` lock (no `RWMutex`), no bounds/EOF checks, and no partial copies. Direct `memcpy` to mmap region; **~10–20% faster** for large ops.
+>   To bypass `WriteAt` lock (no [`*sync.RWMutex`](https://pkg.go.dev/sync#RWMutex)), no bounds/EOF checks, and no partial copies. Direct `memcpy` to mmap region; **~10–20% faster** for large ops.
 >
-> * For durability, call `f.Sync()` after key writes to trigger `msync`: synchronous flush dirty pages to disk (~10–100ms/GB; varies SSD/NVMe/HDD/IO scheduler); essential for WAL/tx commits.
+> * For durability, call [`f.Sync()`](https://pkg.go.dev/go.dw1.io/mmapfile#MmapFile.Sync) after key writes to trigger `msync`: synchronous flush dirty pages to disk (~10–100ms/GB; varies SSD/NVMe/HDD/IO scheduler); essential for WAL/tx commits.
 > * For zero-copy parsing/search, use:
 > 
 >   ```go
@@ -419,12 +419,32 @@ make -C benchdata/
 * **Infrequent access**: syscall overhead is negligible.
 * **Bulk sequential writes**: kernel buffering outperforms user-space `memcpy`.
 
+## Semgrep Rules
+
+Use this [Semgrep](https://github.com/semgrep/semgrep) rules to automatically detect [`*os.File`](https://pkg.go.dev/os#File) usage and suggest `mmapfile` replacements.
+
+Scan your codebase:
+
+```bash
+# Download rules
+wget -q https://github.com/dwisiswant0/mmapfile/raw/refs/heads/master/extras/mmapfile-semgrep-rules.yaml
+# Scan
+semgrep scan --config mmapfile-semgrep-rules.yaml /path/to/your/go/workspace
+# or Scan w/ autofix (REVIEW CHANGES!)
+semgrep scan --autofix --config mmapfile-semgrep-rules.yaml /path/to/your/go/workspace
+```
+
+> [!WARNING]  
+> The `--autofix` flag inserts `size=0` (safe for existing files). For <code>[os.O_CREATE](https://pkg.go.dev/os#O_CREATE)|[os.O_TRUNC](https://pkg.go.dev/os#O_TRUNC)</code>, **manually set `size > 0`** to your expected file size. `mmapfile` has fixed size (no growth/[`os.O_APPEND`](https://pkg.go.dev/os#O_CREATE)).
+
+Rules source: [extras/mmapfile-semgrep-rules.yaml](./extras/mmapfile-semgrep-rules.yaml).
+
 ## Limitations
 
 1. **Fixed size**: Files cannot grow after opening. Use `size` parameter with [`os.O_CREATE`](https://pkg.go.dev/os#O_CREATE).
 2. **No Truncate**: Changing file size requires closing and reopening.
 3. **No [`os.O_APPEND`](https://pkg.go.dev/os#O_APPEND)**: Appending is not supported.
-4. **Cursor operations are slower than positional**: Use `ReadAt`/`WriteAt` for best performance.
+4. **Cursor operations are slower than positional**: Use [`ReadAt`](https://pkg.go.dev/go.dw1.io/mmapfile#MmapFile.ReadAt)/[`WriteAt`](https://pkg.go.dev/go.dw1.io/mmapfile#MmapFile.WriteAt) for best performance.
 
 ## Platform Support
 
