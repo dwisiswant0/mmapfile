@@ -379,7 +379,7 @@ mmapfile trades syscalls for memory ops, crushing latency-bound workloads:
 >   copy(data[off:], src[:n])
 >   ```
 >
->   To bypass `WriteAt` lock (no [`*sync.RWMutex`](https://pkg.go.dev/sync#RWMutex)), no bounds/EOF checks, and no partial copies. Direct `memcpy` to mmap region; **~10–20% faster** for large ops.
+>   To bypass [`WriteAt`](https://pkg.go.dev/go.dw1.io/mmapfile#MmapFile.WriteAt) lock (no [`*sync.RWMutex`](https://pkg.go.dev/sync#RWMutex)), no bounds/EOF checks, and no partial copies. Direct `memcpy` to mmap region; **~10–20% faster** for large ops.
 >
 > * For durability, call [`f.Sync()`](https://pkg.go.dev/go.dw1.io/mmapfile#MmapFile.Sync) after key writes to trigger `msync`: synchronous flush dirty pages to disk (~10–100ms/GB; varies SSD/NVMe/HDD/IO scheduler); essential for WAL/tx commits.
 > * For zero-copy parsing/search, use:
@@ -392,7 +392,7 @@ mmapfile trades syscalls for memory ops, crushing latency-bound workloads:
 >   bytes.IndexByte(data[off:], 'x')
 >   ```
 >
->   No `ReadAt` allocs/copies/syscalls; mmap-pinned mem ideal for DB/indexers/shared-IPC (valid until `Close`; concurrent-safe with care).
+>   No [`ReadAt`](https://pkg.go.dev/go.dw1.io/mmapfile#MmapFile.ReadAt) allocs/copies/syscalls; mmap-pinned mem ideal for DB/indexers/shared-IPC (valid until [`Close`](https://pkg.go.dev/go.dw1.io/mmapfile#MmapFile.Close); concurrent-safe with care).
 
 Run benchmarks yourself:
 
@@ -458,9 +458,16 @@ Rules source: [extras/mmapfile-semgrep-rules.yaml](./extras/mmapfile-semgrep-rul
 
 ## Thread Safety
 
-- `ReadAt` and `WriteAt` are safe for concurrent use.
-- `Read`, `Write`, and `Seek` share a cursor, concurrent use will interleave unpredictably.
-- `Close` should not be called concurrently with other operations.
+- [`ReadAt`](https://pkg.go.dev/go.dw1.io/mmapfile#MmapFile.ReadAt) and [`WriteAt`](https://pkg.go.dev/go.dw1.io/mmapfile#MmapFile.WriteAt) are safe for concurrent use.
+- [`Read`](https://pkg.go.dev/go.dw1.io/mmapfile#MmapFile.Read), [`Write`](https://pkg.go.dev/go.dw1.io/mmapfile#MmapFile.Write), and [`Seek`](https://pkg.go.dev/go.dw1.io/mmapfile#MmapFile.Seek) share a cursor, concurrent use will interleave unpredictably.
+- [`Close`](https://pkg.go.dev/go.dw1.io/mmapfile#MmapFile.Close) should not be called concurrently with other operations.
+
+## Status
+
+> [!CAUTION]
+> **`mmapfile`** is pre-v1 and does NOT provide a stable API; **use at your own risk**.
+
+Occasional breaking changes may be introduced without notice until a post-v1 release.
 
 ## License
 
