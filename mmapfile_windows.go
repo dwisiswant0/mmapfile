@@ -5,92 +5,11 @@ package mmapfile
 import (
 	"fmt"
 	"os"
-	"runtime"
 	"syscall"
 	"unsafe"
 )
 
-// Open memory-maps the named file for reading.
-// The returned MmapFile implements io.ReadSeeker and io.ReaderAt.
-func Open(name string) (*MmapFile, error) {
-	return OpenFile(name, os.O_RDONLY, 0, 0)
-}
-
-// OpenFile opens a memory-mapped file with the specified flags and permissions.
-//
-// Supported flags:
-//   - [os.O_RDONLY]: Open for reading only
-//   - [os.O_RDWR]: Open for reading and writing
-//   - [os.O_CREATE]: Create the file if it doesn't exist (requires size > 0)
-//   - [os.O_TRUNC]: Truncate the file to the specified size
-//
-// The size parameter is used when creating a new file or when [os.O_TRUNC] is
-// specified. For existing files opened without [os.O_TRUNC], size is ignored
-// and the file's current size is used.
-//
-// Note: [os.O_APPEND] is not supported as mmap does not support growing files.
-func OpenFile(name string, flag int, perm os.FileMode, size int64) (*MmapFile, error) {
-	writable := flag&os.O_RDWR != 0 || flag&os.O_WRONLY != 0
-	create := flag&os.O_CREATE != 0
-	trunc := flag&os.O_TRUNC != 0
-
-	// Validate flags
-	if flag&os.O_APPEND != 0 {
-		return nil, fmt.Errorf("mmapfile: O_APPEND is not supported")
-	}
-
-	// Open or create the underlying file
-	osFlag := os.O_RDONLY
-	if writable {
-		osFlag = os.O_RDWR
-	}
-	if create {
-		osFlag |= os.O_CREATE
-	}
-
-	f, err := os.OpenFile(name, osFlag, perm)
-	if err != nil {
-		return nil, err
-	}
-
-	fi, err := f.Stat()
-	if err != nil {
-		f.Close()
-		return nil, err
-	}
-
-	fileSize := fi.Size()
-
-	// Handle size for new/truncated files
-	if create && fileSize == 0 && size > 0 {
-		if err := f.Truncate(size); err != nil {
-			return nil, fmt.Errorf("mmapfile: failed to set file size: %w", err)
-		}
-		fileSize = size
-	} else if trunc && size > 0 {
-		if err := f.Truncate(size); err != nil {
-			return nil, fmt.Errorf("mmapfile: failed to truncate file: %w", err)
-		}
-		fileSize = size
-	}
-
-	if fileSize == 0 {
-		return &MmapFile{
-			data:     nil,
-			name:     name,
-			writable: writable,
-			platform: &fileHolder{file: f},
-		}, nil
-	}
-
-	if fileSize < 0 {
-		return nil, fmt.Errorf("mmapfile: file %q has negative size", name)
-	}
-
-	if fileSize != int64(int(fileSize)) {
-		return nil, fmt.Errorf("mmapfile: file %q is too large", name)
-	}
-
+func mapFile(file *os.File, size int, writable bool) ([]byte, error) {
 	protect := uint32(syscall.PAGE_READONLY)
 	access := uint32(syscall.FILE_MAP_READ)
 	if writable {
@@ -98,100 +17,55 @@ func OpenFile(name string, flag int, perm os.FileMode, size int64) (*MmapFile, e
 		access = syscall.FILE_MAP_WRITE
 	}
 
-	low, high := uint32(fileSize), uint32(fileSize>>32)
-	fmap, err := syscall.CreateFileMapping(syscall.Handle(f.Fd()), nil, protect, high, low, nil)
+	fileSize := uint64(size)
+	mapping, err := syscall.CreateFileMapping(
+		syscall.Handle(file.Fd()),
+		nil,
+		protect,
+		uint32(fileSize>>32),
+		uint32(fileSize),
+		nil,
+	)
 	if err != nil {
-		return nil, fmt.Errorf("mmapfile: CreateFileMapping failed: %w", err)
+		return nil, fmt.Errorf("mmapfile: CreateFileMapping %q: %w", file.Name(), err)
 	}
-	defer syscall.CloseHandle(fmap)
+	defer syscall.CloseHandle(mapping)
 
-	ptr, err := syscall.MapViewOfFile(fmap, access, 0, 0, uintptr(fileSize))
+	ptr, err := syscall.MapViewOfFile(mapping, access, 0, 0, uintptr(size))
 	if err != nil {
-		return nil, fmt.Errorf("mmapfile: MapViewOfFile failed: %w", err)
+		return nil, fmt.Errorf("mmapfile: MapViewOfFile %q: %w", file.Name(), err)
 	}
 
-	// NOTE(dwisiswant0): This is safe despite the warning.
-	// ptr is an address in OS-managed memory (from MapViewOfFile), not
-	// Go-managed memory, so it cannot be moved by the GC.
-	data := unsafe.Slice((*byte)(unsafe.Pointer(ptr)), fileSize) //nolint
-
-	mf := &MmapFile{
-		data:     data,
-		name:     name,
-		writable: writable,
-	}
-	runtime.SetFinalizer(mf, (*MmapFile).Close)
-
-	mf.platform = &fileHolder{file: f}
-
-	return mf, nil
+	return unsafe.Slice((*byte)(unsafe.Pointer(ptr)), size), nil //nolint:gosec
 }
 
-// Close closes the memory-mapped file.
-//
-// After Close, the [MmapFile] should not be used.
-func (f *MmapFile) Close() error {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-
-	if f.closed {
-		return nil
-	}
-	f.closed = true
-
-	var err error
-
-	if fh, ok := f.platform.(*fileHolder); ok && fh.file != nil {
-		if cErr := fh.file.Close(); cErr != nil {
-			err = cErr
-		}
-		f.platform = nil
-	}
-
-	runtime.SetFinalizer(f, nil)
-
-	if len(f.data) == 0 {
-		f.data = nil
-		return err
-	}
-
-	addr := uintptr(unsafe.Pointer(&f.data[0]))
-	f.data = nil
-
-	if unmapErr := syscall.UnmapViewOfFile(addr); unmapErr != nil && err == nil {
-		err = unmapErr
-	}
-
-	return err
-}
-
-// Sync flushes changes to the underlying file.
-//
-// This is a no-op for read-only files.
-func (f *MmapFile) Sync() error {
-	f.mu.RLock()
-	defer f.mu.RUnlock()
-
-	if f.closed {
-		return ErrClosed
-	}
-	if !f.writable || len(f.data) == 0 {
+func unmapFile(file *os.File, data []byte, _ bool) error {
+	if len(data) == 0 {
 		return nil
 	}
 
-	var err error
-
-	if fh, ok := f.platform.(*fileHolder); ok && fh.file != nil {
-		if sErr := fh.file.Sync(); sErr != nil {
-			err = sErr
-		}
+	addr := uintptr(unsafe.Pointer(&data[0]))
+	if err := syscall.UnmapViewOfFile(addr); err != nil {
+		return fmt.Errorf("mmapfile: UnmapViewOfFile %q: %w", file.Name(), err)
 	}
 
-	if flushErr := flushViewOfFile(uintptr(unsafe.Pointer(&f.data[0])), uintptr(len(f.data))); flushErr != nil && err == nil {
-		err = flushErr
+	return nil
+}
+
+func syncFile(file *os.File, data []byte) error {
+	if len(data) == 0 {
+		return nil
 	}
 
-	return err
+	err := flushViewOfFile(uintptr(unsafe.Pointer(&data[0])), uintptr(len(data)))
+	if syncErr := file.Sync(); syncErr != nil && err == nil {
+		err = syncErr
+	}
+	if err != nil {
+		return fmt.Errorf("mmapfile: sync %q: %w", file.Name(), err)
+	}
+
+	return nil
 }
 
 var (

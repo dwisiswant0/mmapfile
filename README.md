@@ -10,7 +10,7 @@ An [`*os.File`](https://pkg.go.dev/os#File)-like type backed by memory-mapped I/
 ## Features
 
 * **[`*os.File`](https://pkg.go.dev/os#File)-compatible interface**: implements [`io.Reader`](https://pkg.go.dev/io#Reader), [`io.Writer`](https://pkg.go.dev/io#Writer), [`io.Seeker`](https://pkg.go.dev/io#Seeker), [`io.ReaderAt`](https://pkg.go.dev/io#ReaderAt), [`io.WriterAt`](https://pkg.go.dev/io#WriterAt), [`io.Closer`](https://pkg.go.dev/io#Closer), [`io.ReaderFrom`](https://pkg.go.dev/io#ReaderFrom), [`io.WriterTo`](https://pkg.go.dev/io#WriterTo), and [`io.StringWriter`](https://pkg.go.dev/io#StringWriter).
-* **Zero-copy reads**: direct access to file contents via [`Bytes()`](https://github.com/semgrep/semgrep) method.
+* **Zero-copy reads**: direct access to file contents via [`Bytes()`](https://pkg.go.dev/go.dw1.io/mmapfile#MmapFile.Bytes) method.
 * **Cross-platform**: native mmap on Linux, Darwin, FreeBSD, OpenBSD, NetBSD, DragonFly, and Windows; fallback for other platforms.
 * **Thread-safe**: concurrent [`ReadAt`](https://pkg.go.dev/go.dw1.io/mmapfile#MmapFile.ReadAt)/[`WriteAt`](https://pkg.go.dev/go.dw1.io/mmapfile#MmapFile.WriteAt) operations are safe.
 * **Zero allocations**: all I/O operations are allocation-free.
@@ -62,7 +62,7 @@ f, err := mmapfile.Open("file.txt")
 
 // open with flags (like os.OpenFile)
 //
-// size parameter is required for os.O_CREATE.
+// size is used when creating a new non-empty file or truncating a file.
 f, err := mmapfile.OpenFile("file.txt", os.O_RDWR|os.O_CREATE, 0644, 1024*1024)
 ```
 
@@ -72,11 +72,14 @@ f, err := mmapfile.OpenFile("file.txt", os.O_RDWR|os.O_CREATE, 0644, 1024*1024)
 |------|-------------|
 | [`os.O_RDONLY`](https://pkg.go.dev/os#O_RDONLY) | Open for reading only |
 | [`os.O_RDWR`](https://pkg.go.dev/os#O_RDWR) | Open for reading and writing |
-| [`os.O_CREATE`](https://pkg.go.dev/os#O_CREATE) | Create if doesn't exist (requires `size > 0`) |
+| [`os.O_CREATE`](https://pkg.go.dev/os#O_CREATE) | Create if the file doesn't exist |
+| [`os.O_EXCL`](https://pkg.go.dev/os#O_EXCL) | Require creating a new file when used with `os.O_CREATE` |
+| [`os.O_SYNC`](https://pkg.go.dev/os#O_SYNC) | Open for synchronous I/O |
 | [`os.O_TRUNC`](https://pkg.go.dev/os#O_TRUNC) | Truncate to specified size |
 
 > [!NOTE]
-> [`os.O_APPEND`](https://pkg.go.dev/os#O_APPEND) is not supported - mmap files have fixed size.
+> [`os.O_APPEND`](https://pkg.go.dev/os#O_APPEND) and [`os.O_WRONLY`](https://pkg.go.dev/os#O_WRONLY) are not supported.
+> Truncating or creating a non-empty file requires [`os.O_RDWR`](https://pkg.go.dev/os#O_RDWR).
 
 ### Methods
 
@@ -90,8 +93,8 @@ f, err := mmapfile.OpenFile("file.txt", os.O_RDWR|os.O_CREATE, 0644, 1024*1024)
 | `Seek(int64, int)` | Set cursor position |
 | `ReadFrom(io.Reader)` | Read from reader into file |
 | `WriteTo(io.Writer)` | Write file contents to writer |
-| `Close()` | Close and unmap the file |
-| `Sync()` | Flush changes to disk |
+| `Close()` | Flush fallback mappings, unmap, and close the file |
+| `Sync()` | Flush mapped changes to disk |
 | `Stat()` | Get file info |
 | `Name()` | Get file name |
 | `Len()` | Get file size |
@@ -379,9 +382,9 @@ mmapfile trades syscalls for memory ops, crushing latency-bound workloads:
 >   copy(data[off:], src[:n])
 >   ```
 >
->   To bypass [`WriteAt`](https://pkg.go.dev/go.dw1.io/mmapfile#MmapFile.WriteAt) lock (no [`*sync.RWMutex`](https://pkg.go.dev/sync#RWMutex)), no bounds/EOF checks, and no partial copies. Direct `memcpy` to mmap region; **~10–20% faster** for large ops.
+>   To bypass [`WriteAt`](https://pkg.go.dev/go.dw1.io/mmapfile#MmapFile.WriteAt) locking, bounds/EOF checks, and partial-copy handling. Direct `memcpy` to mmap region; **~10–20% faster** for large ops.
 >
-> * For durability, call [`f.Sync()`](https://pkg.go.dev/go.dw1.io/mmapfile#MmapFile.Sync) after key writes to trigger `msync`: synchronous flush dirty pages to disk (~10–100ms/GB; varies SSD/NVMe/HDD/IO scheduler); essential for WAL/tx commits.
+> * For durability, call [`f.Sync()`](https://pkg.go.dev/go.dw1.io/mmapfile#MmapFile.Sync) after key writes. Unix platforms that expose it use `msync`, Windows uses `FlushViewOfFile`, and NetBSD/fallback builds flush through the underlying file.
 > * For zero-copy parsing/search, use:
 > 
 >   ```go
@@ -435,13 +438,13 @@ semgrep scan --autofix --config mmapfile-semgrep-rules.yaml /path/to/your/go/wor
 ```
 
 > [!WARNING]  
-> The `--autofix` flag inserts `size=0` (safe for existing files). For <code>[os.O_CREATE](https://pkg.go.dev/os#O_CREATE)|[os.O_TRUNC](https://pkg.go.dev/os#O_TRUNC)</code>, **manually set `size > 0`** to your expected file size. `mmapfile` has fixed size (no growth/[`os.O_APPEND`](https://pkg.go.dev/os#O_CREATE)).
+> The `--autofix` flag is only used for safe existing-file replacements with `size=0`. For <code>[os.O_CREATE](https://pkg.go.dev/os#O_CREATE)|[os.O_TRUNC](https://pkg.go.dev/os#O_TRUNC)</code>, choose the fixed size manually before replacing the call. `mmapfile` has fixed size (no growth/[`os.O_APPEND`](https://pkg.go.dev/os#O_APPEND)).
 
 Rules source: [extras/mmapfile-semgrep-rules.yaml](./extras/mmapfile-semgrep-rules.yaml).
 
 ## Limitations
 
-1. **Fixed size**: Files cannot grow after opening. Use `size` parameter with [`os.O_CREATE`](https://pkg.go.dev/os#O_CREATE).
+1. **Fixed size**: Files cannot grow after opening. Use `size` with [`os.O_CREATE`](https://pkg.go.dev/os#O_CREATE) for new files and [`os.O_TRUNC`](https://pkg.go.dev/os#O_TRUNC) for existing files.
 2. **No Truncate**: Changing file size requires closing and reopening.
 3. **No [`os.O_APPEND`](https://pkg.go.dev/os#O_APPEND)**: Appending is not supported.
 4. **Cursor operations are slower than positional**: Use [`ReadAt`](https://pkg.go.dev/go.dw1.io/mmapfile#MmapFile.ReadAt)/[`WriteAt`](https://pkg.go.dev/go.dw1.io/mmapfile#MmapFile.WriteAt) for best performance.
@@ -452,15 +455,16 @@ Rules source: [extras/mmapfile-semgrep-rules.yaml](./extras/mmapfile-semgrep-rul
 |----------|----------------|
 | Linux | `mmap`/`munmap`/`msync` |
 | Darwin (macOS) | `mmap`/`munmap`/`msync` |
-| FreeBSD, OpenBSD, NetBSD, DragonFly | `mmap`/`munmap`/`msync` |
+| FreeBSD, OpenBSD, DragonFly | `mmap`/`munmap`/`msync` |
+| NetBSD | `mmap`/`munmap`/`fsync` |
 | Windows | `CreateFileMapping`/`MapViewOfFile`/`FlushViewOfFile` |
-| Other | Fallback (reads file into memory) |
+| Other | Fallback (reads file into memory, writes back on `Sync`/`Close`) |
 
 ## Thread Safety
 
-- [`ReadAt`](https://pkg.go.dev/go.dw1.io/mmapfile#MmapFile.ReadAt) and [`WriteAt`](https://pkg.go.dev/go.dw1.io/mmapfile#MmapFile.WriteAt) are safe for concurrent use.
-- [`Read`](https://pkg.go.dev/go.dw1.io/mmapfile#MmapFile.Read), [`Write`](https://pkg.go.dev/go.dw1.io/mmapfile#MmapFile.Write), and [`Seek`](https://pkg.go.dev/go.dw1.io/mmapfile#MmapFile.Seek) share a cursor, concurrent use will interleave unpredictably.
-- [`Close`](https://pkg.go.dev/go.dw1.io/mmapfile#MmapFile.Close) should not be called concurrently with other operations.
+- Methods synchronize with each other, including [`Close`](https://pkg.go.dev/go.dw1.io/mmapfile#MmapFile.Close).
+- [`Read`](https://pkg.go.dev/go.dw1.io/mmapfile#MmapFile.Read), [`Write`](https://pkg.go.dev/go.dw1.io/mmapfile#MmapFile.Write), and [`Seek`](https://pkg.go.dev/go.dw1.io/mmapfile#MmapFile.Seek) share a cursor, so concurrent cursor operations may interleave.
+- Slices returned by [`Bytes`](https://pkg.go.dev/go.dw1.io/mmapfile#MmapFile.Bytes) are caller-managed and must not be used after [`Close`](https://pkg.go.dev/go.dw1.io/mmapfile#MmapFile.Close).
 
 ## Status
 

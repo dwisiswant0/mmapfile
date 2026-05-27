@@ -11,18 +11,6 @@ import (
 
 type byteSize float64
 
-const (
-	_           = iota // ignore first value by assigning to blank identifier
-	KB byteSize = 1 << (10 * iota)
-	MB
-	GB
-	TB
-	PB
-	EB
-	ZB
-	YB
-)
-
 func (b byteSize) Human() string {
 	if b == 0 {
 		return "0B"
@@ -38,14 +26,14 @@ func (b byteSize) Human() string {
 }
 
 var sizes = []byteSize{
-	1 * KB,
-	10 * KB,
-	100 * KB,
-	1 * MB,
-	10 * MB,
-	100 * MB,
-	500 * MB,
-	1 * GB,
+	1 << 10,
+	10 << 10,
+	100 << 10,
+	1 << 20,
+	10 << 20,
+	100 << 20,
+	500 << 20,
+	1 << 30,
 }
 
 func BenchmarkRead(b *testing.B) {

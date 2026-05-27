@@ -28,6 +28,17 @@ func (w *failingWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
+type shortWriter struct {
+	limit int
+}
+
+func (w shortWriter) Write(p []byte) (n int, err error) {
+	if len(p) > w.limit {
+		return w.limit, nil
+	}
+	return len(p), nil
+}
+
 func TestOpen(t *testing.T) {
 	t.Run("existing file", func(t *testing.T) {
 		f, err := Open("testdata/hello.txt")
@@ -61,6 +72,13 @@ func TestOpen(t *testing.T) {
 
 		if f.Len() != 0 {
 			t.Errorf("Len() = %d, want 0", f.Len())
+		}
+	})
+
+	t.Run("directory", func(t *testing.T) {
+		_, err := Open(t.TempDir())
+		if err == nil {
+			t.Fatal("Open should fail for directories")
 		}
 	})
 
@@ -105,11 +123,74 @@ func TestOpenFile(t *testing.T) {
 		}
 	})
 
+	t.Run("create exclusive new file", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "exclusive_new.txt")
+
+		f, err := OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0644, 100)
+		if err != nil {
+			t.Fatalf("OpenFile failed: %v", err)
+		}
+		defer f.Close()
+
+		if f.Len() != 100 {
+			t.Errorf("Len() = %d, want 100", f.Len())
+		}
+	})
+
+	t.Run("create exclusive existing file fails", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "exclusive_existing.txt")
+		if err := os.WriteFile(path, []byte("exists"), 0644); err != nil {
+			t.Fatalf("WriteFile failed: %v", err)
+		}
+
+		_, err := OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0644, 100)
+		if !errors.Is(err, os.ErrExist) {
+			t.Errorf("OpenFile got err %v, want os.ErrExist", err)
+		}
+	})
+
 	t.Run("O_APPEND not supported", func(t *testing.T) {
 		path := filepath.Join(t.TempDir(), "append.txt")
 		_, err := OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644, 100)
 		if err == nil {
 			t.Error("OpenFile should fail with O_APPEND")
+		}
+	})
+
+	t.Run("O_WRONLY not supported", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "write_only.txt")
+		_, err := OpenFile(path, os.O_WRONLY|os.O_CREATE, 0644, 100)
+		if err == nil {
+			t.Error("OpenFile should fail with O_WRONLY")
+		}
+	})
+
+	t.Run("unknown flags not supported", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "unknown_flag.txt")
+		_, err := OpenFile(path, os.O_RDONLY|1<<30, 0644, 0)
+		if err == nil {
+			t.Error("OpenFile should fail with unknown flags")
+		}
+	})
+
+	t.Run("O_TRUNC requires O_RDWR", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "readonly_trunc.txt")
+		if err := os.WriteFile(path, []byte("hello world"), 0644); err != nil {
+			t.Fatalf("WriteFile failed: %v", err)
+		}
+
+		_, err := OpenFile(path, os.O_RDONLY|os.O_TRUNC, 0644, 0)
+		if err == nil {
+			t.Fatal("OpenFile should fail with read-only O_TRUNC")
+		}
+	})
+
+	t.Run("non-empty create requires O_RDWR", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "readonly_create.txt")
+
+		_, err := OpenFile(path, os.O_RDONLY|os.O_CREATE, 0644, 100)
+		if err == nil {
+			t.Fatal("OpenFile should fail with read-only non-empty create")
 		}
 	})
 
@@ -129,6 +210,50 @@ func TestOpenFile(t *testing.T) {
 
 		if f.Len() != 50 {
 			t.Errorf("Len() = %d, want 50", f.Len())
+		}
+	})
+
+	t.Run("truncate existing file to zero", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "trunc_zero.txt")
+
+		if err := os.WriteFile(path, []byte("hello world"), 0644); err != nil {
+			t.Fatalf("WriteFile failed: %v", err)
+		}
+
+		f, err := OpenFile(path, os.O_RDWR|os.O_TRUNC, 0644, 0)
+		if err != nil {
+			t.Fatalf("OpenFile failed: %v", err)
+		}
+		defer f.Close()
+
+		if f.Len() != 0 {
+			t.Errorf("Len() = %d, want 0", f.Len())
+		}
+
+		info, err := os.Stat(path)
+		if err != nil {
+			t.Fatalf("Stat failed: %v", err)
+		}
+		if info.Size() != 0 {
+			t.Errorf("file size = %d, want 0", info.Size())
+		}
+	})
+
+	t.Run("create existing empty file keeps size", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "existing_empty.txt")
+
+		if err := os.WriteFile(path, nil, 0644); err != nil {
+			t.Fatalf("WriteFile failed: %v", err)
+		}
+
+		f, err := OpenFile(path, os.O_RDWR|os.O_CREATE, 0644, 100)
+		if err != nil {
+			t.Fatalf("OpenFile failed: %v", err)
+		}
+		defer f.Close()
+
+		if f.Len() != 0 {
+			t.Errorf("Len() = %d, want 0", f.Len())
 		}
 	})
 }
@@ -288,6 +413,68 @@ func TestWrite(t *testing.T) {
 	})
 }
 
+func TestZeroLengthOperations(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "zero_length.txt")
+
+	f, err := OpenFile(path, os.O_RDWR|os.O_CREATE, 0644, 3)
+	if err != nil {
+		t.Fatalf("OpenFile failed: %v", err)
+	}
+	defer f.Close()
+
+	if _, err := f.WriteString("abc"); err != nil {
+		t.Fatalf("WriteString failed: %v", err)
+	}
+
+	tests := []struct {
+		name string
+		fn   func() (int, error)
+	}{
+		{
+			name: "Read at EOF",
+			fn: func() (int, error) {
+				if _, err := f.Seek(0, io.SeekEnd); err != nil {
+					t.Fatalf("Seek failed: %v", err)
+				}
+				return f.Read(nil)
+			},
+		},
+		{
+			name: "ReadAt past EOF",
+			fn: func() (int, error) {
+				return f.ReadAt(nil, int64(f.Len()+1))
+			},
+		},
+		{
+			name: "Write at EOF",
+			fn: func() (int, error) {
+				if _, err := f.Seek(0, io.SeekEnd); err != nil {
+					t.Fatalf("Seek failed: %v", err)
+				}
+				return f.Write(nil)
+			},
+		},
+		{
+			name: "WriteAt past EOF",
+			fn: func() (int, error) {
+				return f.WriteAt(nil, int64(f.Len()+1))
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			n, err := tt.fn()
+			if err != nil {
+				t.Fatalf("operation failed: %v", err)
+			}
+			if n != 0 {
+				t.Fatalf("n = %d, want 0", n)
+			}
+		})
+	}
+}
+
 func TestWriteAt(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "writeat.txt")
 
@@ -407,6 +594,11 @@ func TestReadOnlyWrite(t *testing.T) {
 	if !errors.Is(err, ErrReadOnly) {
 		t.Errorf("WriteAt on read-only file: got %v, want ErrReadOnly", err)
 	}
+
+	_, err = f.WriteAt(nil, 0)
+	if !errors.Is(err, ErrReadOnly) {
+		t.Errorf("zero-length WriteAt on read-only file: got %v, want ErrReadOnly", err)
+	}
 }
 
 func TestSeek(t *testing.T) {
@@ -469,6 +661,12 @@ func TestSeek(t *testing.T) {
 		}
 		if pos != int64(f.Len()+100) {
 			t.Errorf("Seek returned %d, want %d", pos, f.Len()+100)
+		}
+	})
+
+	t.Run("overflow", func(t *testing.T) {
+		if _, err := f.Seek(maxInt64, io.SeekEnd); !errors.Is(err, ErrOffsetTooLarge) {
+			t.Errorf("Seek overflow: got %v, want ErrOffsetTooLarge", err)
 		}
 	})
 }
@@ -657,6 +855,16 @@ func TestWriteTo(t *testing.T) {
 		n, err := f.WriteTo(failingWriter)
 		if err == nil {
 			t.Error("WriteTo should fail with failing writer")
+		}
+		if n != 5 {
+			t.Errorf("WriteTo wrote %d bytes, want 5", n)
+		}
+	})
+
+	t.Run("short write without error", func(t *testing.T) {
+		n, err := f.WriteTo(shortWriter{limit: 5})
+		if !errors.Is(err, io.ErrShortWrite) {
+			t.Errorf("WriteTo got err %v, want io.ErrShortWrite", err)
 		}
 		if n != 5 {
 			t.Errorf("WriteTo wrote %d bytes, want 5", n)
